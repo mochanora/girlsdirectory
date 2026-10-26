@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Girls' Directory</title>
+<meta name="description" content="Trusted recommendations and women-owned businesses from our Nairobi community.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="hero-text">
+      <p class="eyebrow">🌸 Our Nairobi community</p>
+      <h1>The Girls' Directory</h1>
+      <p class="lede">Trusted contacts, honest recommendations and businesses owned by women in the group.</p>
+    </div>
+    <button class="btn btn-primary hero-add" id="addBtn" type="button">
+      <span aria-hidden="true">+</span> Add a business
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+
+  <section class="controls" aria-label="Search and filter">
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="sr-only">Search</span>
+      <input id="search" type="search" placeholder="Search nails, lawyer, Westlands…" autocomplete="off">
+    </label>
+    <div class="type-toggle" id="typeToggle" role="group" aria-label="Show">
+      <button type="button" data-type="all" aria-pressed="true">All</button>
+      <button type="button" data-type="Girl Business" aria-pressed="false"><span class="dot dot-girl"></span>Girl businesses</button>
+      <button type="button" data-type="Recommendation" aria-pressed="false"><span class="dot dot-rec"></span>Recommendations</button>
+    </div>
+  </section>
+
+  <nav id="categories" class="categories" aria-label="Categories"></nav>
+
+  <p id="resultCount" class="result-count" aria-live="polite"></p>
+  <section id="grid" class="grid"></section>
+
+  <div id="empty" class="empty" hidden>
+    <p class="empty-title">Nothing here yet.</p>
+    <p>Know someone great? <button type="button" class="link-btn" id="emptyAdd">Add them to the directory</button>.</p>
+  </div>
+
+  <details class="guide">
+    <summary>How the directory works</summary>
+    <div class="guide-body">
+      <p><strong>Girl Business</strong> means someone in the group owns it. <strong>Recommendation</strong> means a member has used them and vouches for them.</p>
+      <p><strong>Adding someone?</strong> Search first to make sure they're not already listed, choose the right category and fill in everything you can. Incomplete, duplicate or inappropriate entries may be removed.</p>
+      <p><strong>Recommending?</strong> Please be honest. A recommendation isn't a guarantee, so use your own judgement when hiring someone.</p>
+    </div>
+  </details>
+</main>
+
+<footer class="footer wrap">
+  <p>Made with 💕 for the group · <span id="updated"></span></p>
+</footer>
+
+<!-- Add form -->
+<dialog id="addDialog" aria-labelledby="addTitle">
+  <form id="addForm" novalidate>
+    <div class="dialog-head">
+      <h2 id="addTitle">Add to the directory</h2>
+      <button type="button" class="icon-btn" id="closeDialog" aria-label="Close">×</button>
+    </div>
+
+    <div class="dialog-body">
+      <fieldset class="field">
+        <legend>What kind of listing is this?</legend>
+        <div class="choice-row">
+          <label class="choice">
+            <input type="radio" name="classification" value="Girl Business" required>
+            <span class="choice-card">
+              <span class="choice-title"><span class="dot dot-girl"></span>Girl Business</span>
+              <span class="choice-sub">I or someone in the group owns it</span>
+            </span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="classification" value="Recommendation">
+            <span class="choice-card">
+              <span class="choice-title"><span class="dot dot-rec"></span>Recommendation</span>
+              <span class="choice-sub">I've used them and recommend them</span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="field">
+        <span class="label">Category</span>
+        <select name="category" id="categorySelect" required></select>
+      </label>
+
+      <label class="field">
+        <span class="label">Business name</span>
+        <input name="name" id="nameInput" required maxlength="120" autocomplete="off">
+        <span class="dup-warning" id="dupWarning" hidden></span>
+      </label>
+
+      <label class="field">
+        <span class="label">Brief</span>
+        <textarea name="brief" rows="4" required maxlength="1200" placeholder="What they do, where they are, price range, why you'd recommend them…"></textarea>
+      </label>
+
+      <label class="field">
+        <span class="label">Tags <span class="optional">optional</span></span>
+        <input name="tags" maxlength="300" placeholder="e.g. Nails, Pedicure, Kilimani">
+        <span class="hint">Separate with commas. Helps people find them in search.</span>
+      </label>
+
+      <label class="field">
+        <span class="label">Website or Instagram</span>
+        <input name="website" maxlength="300" placeholder="https://… or @handle">
+      </label>
+
+      <div class="field-row">
+        <label class="field">
+          <span class="label">Phone / WhatsApp</span>
+          <input name="phone" type="tel" maxlength="200" placeholder="254 7xx xxx xxx">
+          <span class="hint">Include the country code. Several numbers? Separate with /</span>
+        </label>
+        <label class="field">
+          <span class="label">Email</span>
+          <input name="email" type="email" maxlength="200">
+        </label>
+      </div>
+
+      <!-- Leave empty: helps block spam bots -->
+      <label class="hp" aria-hidden="true">Company URL <input name="company_url" tabindex="-1" autocomplete="off"></label>
+
+      <p class="form-error" id="formError" role="alert" hidden></p>
+    </div>
+
+    <div class="dialog-foot">
+      <p class="fine">Add at least one way to contact them.</p>
+      <button type="submit" class="btn btn-primary" id="submitBtn">Add to directory</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Passcode gate (only used if a passcode is set on the sheet's script) -->
+<div id="gate" class="gate" hidden>
+  <form id="gateForm" class="gate-card">
+    <p class="eyebrow">🌸 Members only</p>
+    <h2>Enter the group passcode</h2>
+    <p class="gate-msg" id="gateMsg"></p>
+    <input id="gateInput" type="password" autocomplete="current-password" required aria-label="Passcode">
+    <button class="btn btn-primary" type="submit">Open the directory</button>
+  </form>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
