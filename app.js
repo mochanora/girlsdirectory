@@ -4,7 +4,7 @@
    SETUP: paste your Apps Script Web app URL between the quotes.
    Leave it empty to preview the site with made-up demo data.
    ========================================================= */
-const API_URL = '';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxtFOWBnIdd1WvmyShImJrQVA0_awMFBaSkRSqWqdH4yWFgfbFfy4huE8j-Z9iB7NRUHw/exec';
 
 /* ---------- State ---------- */
 const state = {
