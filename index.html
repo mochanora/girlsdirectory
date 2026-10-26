@@ -44,6 +44,11 @@
 
   <nav id="categories" class="categories" aria-label="Categories"></nav>
 
+  <div id="blNote" class="bl-note" hidden>
+    <strong>⚠ Blacklist</strong>
+    <span>Businesses members have had bad experiences with. These are members' own accounts, so use your judgement.</span>
+  </div>
+
   <p id="resultCount" class="result-count" aria-live="polite"></p>
   <section id="grid" class="grid"></section>
 
@@ -57,6 +62,7 @@
     <div class="guide-body">
       <p><strong>Girl Business</strong> means someone in the group owns it. <strong>Recommendation</strong> means a member has used them and vouches for them.</p>
       <p><strong>Adding someone?</strong> Search first to make sure they're not already listed, choose the right category and fill in everything you can. Incomplete, duplicate or inappropriate entries may be removed.</p>
+      <p><strong>Blacklist</strong> lists businesses members have had bad experiences with. They never appear in the main listings, only in the Blacklist tab or when you search for that name.</p>
       <p><strong>Recommending?</strong> Please be honest. A recommendation isn't a guarantee, so use your own judgement when hiring someone.</p>
     </div>
   </details>
@@ -75,7 +81,7 @@
     </div>
 
     <div class="dialog-body">
-      <fieldset class="field">
+      <fieldset class="field" id="classField">
         <legend>What kind of listing is this?</legend>
         <div class="choice-row">
           <label class="choice">
@@ -107,8 +113,8 @@
       </label>
 
       <label class="field">
-        <span class="label">Brief</span>
-        <textarea name="brief" rows="4" required maxlength="1200" placeholder="What they do, where they are, price range, why you'd recommend them…"></textarea>
+        <span class="label" id="briefLabel">Brief</span>
+        <textarea name="brief" id="briefInput" rows="4" required maxlength="1200" placeholder="What they do, where they are, price range, why you'd recommend them…"></textarea>
       </label>
 
       <label class="field">
@@ -141,7 +147,7 @@
     </div>
 
     <div class="dialog-foot">
-      <p class="fine">Add at least one way to contact them.</p>
+      <p class="fine" id="formFine">Add at least one way to contact them.</p>
       <button type="submit" class="btn btn-primary" id="submitBtn">Add to directory</button>
     </div>
   </form>

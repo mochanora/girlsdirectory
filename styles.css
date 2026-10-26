@@ -56,6 +56,7 @@ body {
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: inherit; }
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 @media (min-width: 720px) { .wrap { padding: 0 32px; } }
@@ -179,6 +180,50 @@ h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(32px, 6vw, 52
 .contact.wa { background: #e7f6ec; border-color: #c8ebd3; color: #136c34; }
 @media (prefers-color-scheme: dark) { .contact.wa { background: #17301f; border-color: #24472f; color: #7fd69c; } }
 .contact-text { font-size: 14px; color: var(--ink-2); padding: 7px 0; overflow-wrap: anywhere; }
+
+/* Extra columns (e.g. Reason, Location) */
+.extras { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 14px; }
+.extras dt { color: var(--ink-3); font-weight: 500; }
+.extras dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+
+/* ---------- Blacklist ---------- */
+:root { --hazard: #f5c518; --black-card: #141012; --black-ink: #f4eee8; --black-ink-2: #b9aea8; --black-line: #2e2729; }
+
+.cat-black { background: var(--black-card); border-color: var(--black-card); color: var(--hazard); }
+.cat-black .count { color: var(--black-ink-2); }
+.cat-black:hover { border-color: var(--hazard); }
+.cat-black[aria-pressed="true"] { background: var(--hazard); border-color: var(--hazard); color: var(--black-card); }
+.cat-black[aria-pressed="true"] .count { color: var(--black-card); opacity: .7; }
+@media (prefers-color-scheme: dark) { .cat-black { border-color: #4a3d1a; } }
+
+.card-black {
+  position: relative; overflow: hidden;
+  background: var(--black-card); border-color: var(--black-card); color: var(--black-ink);
+  padding-top: 30px;
+}
+.card-black::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 10px;
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 12px, var(--black-card) 12px 24px);
+}
+@media (prefers-color-scheme: dark) { .card-black { border-color: #4a3d1a; } }
+.card-black h3 { color: var(--black-ink); text-decoration: line-through; text-decoration-color: rgba(245, 197, 24, .55); text-decoration-thickness: 2px; }
+.card-black .brief { color: var(--black-ink-2); }
+.card-black .extras { padding-top: 12px; border-top: 1px solid var(--black-line); }
+.card-black .extras dt { color: #8a7f7a; }
+.card-black .extras dd { color: var(--black-ink-2); }
+.card-black .extras + .extras { border-top: 0; padding-top: 0; }
+.badge-warn { background: var(--hazard); color: var(--black-card); text-transform: uppercase; letter-spacing: .05em; }
+.badge-warn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.bl-hint { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--hazard); }
+
+.bl-note {
+  display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline;
+  margin-top: 20px; padding: 14px 16px; border-radius: 12px;
+  background: var(--black-card); color: var(--black-ink-2); font-size: 14px;
+  border-left: 6px solid var(--hazard);
+}
+.bl-note[hidden] { display: none; }
+.bl-note strong { color: var(--hazard); }
 
 /* Skeleton */
 .skeleton { height: 220px; border-radius: var(--radius); background: linear-gradient(90deg, var(--surface-2), var(--surface), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }

@@ -4,7 +4,7 @@
    SETUP: paste your Apps Script Web app URL between the quotes.
    Leave it empty to preview the site with made-up demo data.
    ========================================================= */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxtFOWBnIdd1WvmyShImJrQVA0_awMFBaSkRSqWqdH4yWFgfbFfy4huE8j-Z9iB7NRUHw/exec';
+const API_URL = '';
 
 /* ---------- State ---------- */
 const state = {
@@ -47,6 +47,7 @@ const ICONS = {
   phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
   wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 0 1-1.8-1.8l.8-1-1-2z"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6 8.5 7 8.5-7"/>',
+  warn: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/>',
 };
 
 /* ---------- Storage (per-browser conveniences only) ---------- */
@@ -102,9 +103,19 @@ function showBanner(text) {
 /* ---------- Filtering ---------- */
 const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+// Any tab with "blacklist" in its name is treated as the blacklist
+const isBlacklist = category => /black\s*list/i.test(String(category || ''));
+
 function matches(e) {
   if (state.category !== 'all' && e.category !== state.category) return false;
-  if (state.type !== 'all' && fold(e.classification) !== fold(state.type)) return false;
+  if (isBlacklist(e.category)) {
+    // Never mixed into "All" or the Girl Business / Recommendation filters.
+    // Only shown in the Blacklist tab, or as a warning when someone searches for that name.
+    if (state.type !== 'all') return false;
+    if (state.category === 'all' && !state.search.trim()) return false;
+  } else if (state.type !== 'all' && fold(e.classification) !== fold(state.type)) {
+    return false;
+  }
   const words = fold(state.search).split(/\s+/).filter(Boolean);
   if (!words.length) return true;
   const hay = fold([e.name, e.brief, e.tags, e.category, e.website].join(' '));
@@ -117,27 +128,72 @@ function render() {
   const list = state.entries.filter(matches)
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
+  const inBlacklist = isBlacklist(state.category);
   const where = state.category === 'all' ? '' : ' in ' + state.category;
-  $('#resultCount').textContent = list.length === 1 ? '1 listing' + where : list.length + ' listings' + where;
+  $('#resultCount').textContent = inBlacklist
+    ? list.length + (list.length === 1 ? ' business' : ' businesses') + ' on the blacklist'
+    : (list.length === 1 ? '1 listing' : list.length + ' listings') + where;
+  $('#blNote').hidden = !inBlacklist;
   $('#grid').replaceChildren(...list.map(card));
   $('#empty').hidden = list.length > 0;
 }
 
 function renderCategories() {
-  const byType = state.entries.filter(e => state.type === 'all' || fold(e.classification) === fold(state.type));
+  const regular = state.categories.filter(c => !isBlacklist(c));
+  const black = state.categories.filter(isBlacklist);
+  const byType = state.entries.filter(e => !isBlacklist(e.category)
+    && (state.type === 'all' || fold(e.classification) === fold(state.type)));
   const counts = {};
   byType.forEach(e => { counts[e.category] = (counts[e.category] || 0) + 1; });
-  const chip = (value, label, count) => el('button', {
-    class: 'cat', type: 'button', 'aria-pressed': String(state.category === value),
-    onclick: () => { state.category = value; syncHash(); render(); },
+  const chip = (value, label, count, extraClass = '') => el('button', {
+    class: 'cat' + extraClass, type: 'button', 'aria-pressed': String(state.category === value),
+    onclick: () => {
+      state.category = value;
+      if (isBlacklist(value)) setType('all'); // the blacklist has no Girl Business / Recommendation split
+      syncHash();
+      render();
+    },
   }, label, el('span', { class: 'count' }, count));
   $('#categories').replaceChildren(
     chip('all', 'All', byType.length),
-    ...state.categories.map(c => chip(c, c, counts[c] || 0)),
+    ...regular.map(c => chip(c, c, counts[c] || 0)),
+    ...black.map(c => chip(c, '⚠ ' + c, state.entries.filter(e => e.category === c).length, ' cat-black')),
+  );
+}
+
+function setType(type) {
+  state.type = type;
+  for (const x of $('#typeToggle').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.type === type));
+}
+
+function extras(e) {
+  const list = (e.extra || []).filter(x => x && x.label && x.value);
+  if (!list.length) return null;
+  return el('dl', { class: 'extras' }, list.flatMap(x => [el('dt', {}, x.label), el('dd', {}, x.value)]));
+}
+
+function blacklistCard(e) {
+  // Contact details are shown as plain text so people can recognise the business,
+  // never as call / WhatsApp buttons.
+  const details = [
+    e.website && ['Website / social', e.website],
+    e.phone && ['Phone', e.phone],
+    e.email && ['Email', e.email],
+    e.tags && ['Tags', e.tags],
+  ].filter(Boolean);
+  return el('article', { class: 'card card-black' },
+    el('div', { class: 'card-top' },
+      el('span', { class: 'badge badge-warn' }, svg(ICONS.warn), 'Blacklisted'),
+      state.category === 'all' ? el('span', { class: 'bl-hint' }, 'Avoid') : null),
+    el('h3', {}, e.name),
+    e.brief ? el('p', { class: 'brief' }, e.brief) : null,
+    extras(e),
+    details.length ? el('dl', { class: 'extras bl-details' }, details.flatMap(([k, v]) => [el('dt', {}, k), el('dd', {}, v)])) : null,
   );
 }
 
 function card(e) {
+  if (isBlacklist(e.category)) return blacklistCard(e);
   const isGirl = fold(e.classification) === 'girl business';
   const isRec = fold(e.classification) === 'recommendation';
   const badge = isGirl || isRec
@@ -167,6 +223,7 @@ function card(e) {
       class: 'tag', type: 'button', title: 'Search for ' + t,
       onclick: () => { state.search = t; $('#search').value = t; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
     }, t))) : null,
+    extras(e),
     contacts(e),
   );
 }
@@ -260,7 +317,22 @@ function openAdd() {
     ...state.categories.map(c => el('option', { value: c }, c)),
   );
   if (state.category !== 'all') sel.value = state.category;
+  updateFormForCategory();
   dialog.showModal();
+}
+
+function updateFormForCategory() {
+  const bl = isBlacklist($('#categorySelect').value);
+  $('#classField').hidden = bl;
+  $('#briefLabel').textContent = bl ? 'What happened?' : 'Brief';
+  $('#briefInput').placeholder = bl
+    ? 'Briefly and factually: what went wrong, and roughly when.'
+    : 'What they do, where they are, price range, why you’d recommend them…';
+  $('#formFine').textContent = bl
+    ? 'Stick to what you experienced. Admins may remove entries.'
+    : 'Add at least one way to contact them.';
+  $('#submitBtn').textContent = bl ? 'Add to blacklist' : 'Add to directory';
+  form.classList.toggle('is-blacklist', bl);
 }
 
 function closeAdd() { dialog.close(); }
@@ -276,7 +348,9 @@ function checkDuplicate() {
     return k === key || (key.length >= 5 && (k.includes(key) || key.includes(k)) && k.length >= 5);
   });
   if (hit) {
-    warn.textContent = 'Already listed? "' + hit.name + '" is in ' + hit.category + '.';
+    warn.textContent = isBlacklist(hit.category)
+      ? '⚠ "' + hit.name + '" is on the blacklist.'
+      : 'Already listed? "' + hit.name + '" is in ' + hit.category + '.';
     warn.hidden = false;
   } else {
     warn.hidden = true;
@@ -289,12 +363,15 @@ async function submitAdd(ev) {
   const entry = Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v).trim()]));
   const err = $('#formError');
 
+  const bl = isBlacklist(entry.category);
+  if (bl) delete entry.classification;
+
   const missing = [];
-  if (!entry.classification) missing.push('whether it’s a Girl Business or a Recommendation');
+  if (!bl && !entry.classification) missing.push('whether it’s a Girl Business or a Recommendation');
   if (!entry.category) missing.push('a category');
   if (!entry.name) missing.push('the business name');
-  if (!entry.brief) missing.push('a short brief');
-  if (!entry.phone && !entry.email && !entry.website) missing.push('at least one way to contact them');
+  if (!entry.brief) missing.push(bl ? 'what happened' : 'a short brief');
+  if (!bl && !entry.phone && !entry.email && !entry.website) missing.push('at least one way to contact them');
   if (missing.length) {
     err.textContent = 'Please add ' + missing.join(', ') + '.';
     err.hidden = false;
@@ -315,7 +392,7 @@ async function submitAdd(ev) {
     if (res.error === 'passcode') { closeAdd(); return showGate(res.message); }
     if (res.error) throw new Error(res.message || 'Something went wrong.');
     closeAdd();
-    toast('Added "' + entry.name + '" to ' + entry.category + ' 💕');
+    toast(bl ? 'Added "' + entry.name + '" to the blacklist' : 'Added "' + entry.name + '" to ' + entry.category + ' 💕');
     state.category = entry.category;
     state.search = '';
     $('#search').value = '';
@@ -326,7 +403,7 @@ async function submitAdd(ev) {
     err.hidden = false;
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Add to directory';
+    updateFormForCategory();
   }
 }
 
@@ -376,8 +453,9 @@ $('#search').addEventListener('input', ev => {
 $('#typeToggle').addEventListener('click', ev => {
   const b = ev.target.closest('button[data-type]');
   if (!b) return;
-  state.type = b.dataset.type;
-  for (const x of $('#typeToggle').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+  setType(b.dataset.type);
+  // Filtering by type only makes sense outside the blacklist
+  if (b.dataset.type !== 'all' && isBlacklist(state.category)) { state.category = 'all'; syncHash(); }
   render();
 });
 
@@ -386,6 +464,7 @@ $('#emptyAdd').addEventListener('click', openAdd);
 $('#closeDialog').addEventListener('click', closeAdd);
 dialog.addEventListener('click', ev => { if (ev.target === dialog) closeAdd(); });
 $('#nameInput').addEventListener('input', checkDuplicate);
+$('#categorySelect').addEventListener('change', updateFormForCategory);
 form.addEventListener('submit', submitAdd);
 
 document.body.append(el('button', { class: 'btn btn-primary fab', type: 'button', onclick: openAdd, 'aria-label': 'Add a business' }, '+ Add'));
@@ -414,6 +493,9 @@ function demoApi(body) {
       { id: 'd5', name: 'Grace — Driver', brief: 'Reliable driver for airport runs and school pickups. Clean car, always on time.', classification: 'Recommendation', tags: 'Driver, Airport, School runs', website: '', phone: '254 700 000 006', email: '' },
     ] },
     { name: 'Home and Property', entries: [] },
+    { name: 'Blacklist', entries: [
+      { id: 'd6', name: 'Quickfix Example Repairs', brief: 'Took a deposit for sofa repairs, never delivered and stopped answering calls.', classification: '', tags: '', website: '', phone: '254 700 000 099', email: '', extra: [{ label: 'Reported by', value: 'A member, Sept 2026' }] },
+    ] },
   ]);
   return new Promise(resolve => setTimeout(() => {
     if (body.action === 'list') return resolve({ ok: true, categories: db, updated: new Date().toISOString() });
